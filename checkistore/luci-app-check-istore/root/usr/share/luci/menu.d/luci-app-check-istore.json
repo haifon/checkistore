@@ -1,0 +1,8 @@
+{
+    "admin-checkistore": {
+        "title": "iStore检测",
+        "order": 90,
+        "path": "/admin/checkistore",
+        "acl": ["luci-app-check-istore"]
+    }
+}

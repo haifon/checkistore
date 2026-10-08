@@ -1,0 +1,66 @@
+<%
+local fs = require "nixio.fs"
+local function get_pkg_mgr()
+    local f = io.popen("command -v apk 2>/dev/null")
+    local apk_exist = f:read("*a")
+    f:close()
+    return #apk_exist>0 and "apk" or "opkg"
+end
+local mgr = get_pkg_mgr()
+local cmd
+if mgr == "apk" then
+    cmd = "apk info 2>/dev/null | grep luci-app-store"
+else
+    cmd = "opkg list-installed | grep luci-app-store"
+end
+local f = io.popen(cmd)
+local out = f:read("*a")
+f:close()
+local has_istore = (#out > 0)
+%>
+<%+header%>
+<h2>iStore状态检测 | IPK上传安装（OpenWrt‑25.12 apk）</h2>
+<div class="cbi-map">
+    <div class="cbi-section">
+        <% if has_istore then %>
+            <div class="alert-message success">✅ iStore(luci-app-store) 已安装</div>
+            <br>
+            <a class="btn cbi-button-action" href="<%=luci.dispatcher.build_url("admin/store")%>">运行 iStore</a>
+        <% else %>
+            <div class="alert-message warning">❌ iStore 未安装</div>
+            <br>
+            <form method="post" action="<%=luci.dispatcher.build_url("admin/checkistore/install")%>">
+                <input class="btn cbi-button-positive" type="submit" value="一键安装 iStore" onclick="return confirm('确认后台开始安装iStore，后台异步执行！')"/>
+            </form>
+        <% end %>
+    </div>
+
+    <div class="cbi-section">
+        <h3>📦 上传本地IPK包安装</h3>
+        <div class="alert-message info">
+            <strong>重要提示：</strong><br>
+            1. 当前包管理器：<strong><%=mgr%></strong><br>
+            2. <span style="color:red">APK是安卓Android安装包，路由器系统不能安装/运行APK！</span>
+        </div>
+        <form method="post" action="<%=luci.dispatcher.build_url("admin/checkistore/upload_ipk")%>" enctype="multipart/form-data">
+            <div>
+                <input type="file" name="ipkfile" accept=".ipk" />
+            </div>
+            <br>
+            <input class="btn cbi-button-positive" type="submit" value="上传并安装IPK"/>
+        </form>
+    </div>
+
+    <div class="cbi-section">
+        <h3>📄 查看安装日志</h3>
+        <form method="post" action="<%=luci.dispatcher.build_url("admin/checkistore/viewlog")%>">
+            <select name="logname">
+                <option value="istore_install.log">iStore安装日志</option>
+                <option value="ipk_install.log">IPK安装日志</option>
+            </select>
+            <br><br>
+            <input class="btn cbi-button-neutral" type="submit" value="读取日志"/>
+        </form>
+    </div>
+</div>
+<%+footer%>
